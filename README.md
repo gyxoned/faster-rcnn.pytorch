@@ -32,30 +32,30 @@ We benchmark our code thoroughly on three datasets: pascal voc, coco and imagene
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
-model    | #GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
----------|-----|-------|-------|-------|-------|-------|--------|--------
-VGG-16     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0
-VGG-16     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
+model    | #GPUs | batch size | lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
+---------|--------|-----|--------|-----|-----|-------|--------|-----
+[VGG-16](https://www.dropbox.com/s/sqzwahasczavco9/faster_rcnn_1_7_10021.pth?dl=0)     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 70.2
+[VGG-16](https://www.dropbox.com/s/l2paqfjbbmx6d9f/faster_rcnn_1_10_2504.pth?dl=0)     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
 [VGG-16](https://www.dropbox.com/s/1a31y7vicby0kvy/faster_rcnn_1_10_625.pth?dl=0)     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.7
 VGG-16     | 8 | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6
 [Res-101](https://www.dropbox.com/s/4v3or0054kzl19q/faster_rcnn_1_7_10021.pth?dl=0)   | 1 | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.2
-Res-101    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.5
+[Res-101](https://www.dropbox.com/s/8bhldrds3mf0yuj/faster_rcnn_1_10_2504.pth?dl=0)    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.9
 [Res-101](https://www.dropbox.com/s/5is50y01m1l9hbu/faster_rcnn_1_10_625.pth?dl=0)    | 8 | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 75.2 
 [Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 75.1   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
-model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
----------|-----------|-----|-------|-----|-----|-------|--------|----- 
+model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
+---------|--------|-----|--------|-----|-----|-------|--------|----- 
 VGG-16     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 Res-101    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 Res-101    | 8 | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
-model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
----------|-----------|-----|--------|-----|-----|-------|--------|----- 
+model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
+---------|--------|-----|--------|-----|-----|-------|--------|----- 
 Res-101    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
 Res-101    | 8 | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
@@ -96,11 +96,11 @@ mkdir data
 
 We used two pretrained models in our experiments, VGG and ResNet101. You can download these two models from:
 
-* VGG16: [Dropbox](https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0), [VT Server](https://filebox.ece.vt.edu/~jw2yang/faster-rcnn/pretrained-base-models/vgg16_caffe.pth)
+* VGG16: [Dropbox](https://www.dropbox.com/s/s3brpk0bdq60nyb/vgg16_caffe.pth?dl=0), [VT Server](https://filebox.ece.vt.edu/~jw2yang/faster-rcnn/pretrained-base-models/vgg16_caffe.pth)
 
 * ResNet101: [Dropbox](https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0), [VT Server](https://filebox.ece.vt.edu/~jw2yang/faster-rcnn/pretrained-base-models/resnet101_caffe.pth)
 
-Download them and put them into the data/.
+Download them and put them into the data/pretrained_model/.
 
 **NOTE**. We compare the pretrained models from Pytorch and Caffe, and surprisingly find Caffe pretrained models have slightly better performance than Pytorch pretrained. We would suggest to use Caffe pretrained models from the above link to reproduce our results. 
 
@@ -129,6 +129,8 @@ sh make.sh
 
 It will compile all the modules you need, including NMS, ROI_Pooing, ROI_Align and ROI_Crop. The default version is compiled with Python 2.7, please compile by yourself if you are using a different python version.
 
+**As pointed out in this [issue](https://github.com/jwyang/faster-rcnn.pytorch/issues/16), if you encounter some error during the compilation, you might miss to export the CUDA paths to your environment.**
+
 ## Train 
 
 Before training, set the right directory to save and load the trained models. Change the arguments "save_dir" and "load_dir" in trainval_net.py and test_net.py to adapt to your environment.
@@ -144,7 +146,7 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
  CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
-                    --dataset pascal_voc --net resnet101 \
+                    --dataset pascal_voc --net res101 \
                     --bs $BATCH_SIZE --nw $WORKER_NUMBER \
                     --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
                     --cuda
@@ -174,14 +176,16 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 
 ## Demo
 
-If you want to run detection on your own images with a pre-trained model, add your own images to folder $ROOT/images, and then try
+If you want to run detection on your own images with a pre-trained model, download the pretrained model lined in above tables or train your own models at firt, then add images to folder $ROOT/images, and then run
 ```
 python demo.py --net vgg16 \
                --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
                --cuda
 ```
 
-Then you will find the detection results in folder $ROOT/images.
+Then you will find the detection results in folder $ROOT/images. 
+
+**Note the default demo.py merely support pascal_voc categories. You need to change the [line](https://github.com/jwyang/faster-rcnn.pytorch/blob/530f3fdccaa60d05fa068bc2148695211586bd88/demo.py#L156) to adapt your own model.**
 
 Below are some detection results:
 
