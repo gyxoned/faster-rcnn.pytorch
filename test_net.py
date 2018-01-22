@@ -41,7 +41,7 @@ def parse_args():
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
   parser.add_argument('--dataset', dest='dataset',
                       help='training dataset',
-                      default='pascal_voc', type=str)  
+                      default='pascal_voc', type=str)
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
                       default='cfgs/vgg16.yml', type=str)
@@ -52,20 +52,20 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="/srv/share/jyang375/models",
+                      help='directory to load models', default="output",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
   parser.add_argument('--ls', dest='large_scale',
                       help='whether use large imag scale',
-                      action='store_true')                           
+                      action='store_true')
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
                       action='store_true')
   parser.add_argument('--cag', dest='class_agnostic',
                       help='whether perform class_agnostic bbox regression',
-                      action='store_true')                      
+                      action='store_true')
   parser.add_argument('--parallel_type', dest='parallel_type',
                       help='which part of model to parallel, 0: all, 1: model before roi pooling',
                       default=0, type=int)
@@ -83,7 +83,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--vis', dest='vis',
                       help='visualization mode',
-                      action='store_true')  
+                      action='store_true')
   args = parser.parse_args()
   return args
 
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     pdb.set_trace()
 
   fasterRCNN.create_architecture()
-  
+
   print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
@@ -197,7 +197,7 @@ if __name__ == '__main__':
   max_per_image = 100
 
   vis = args.vis
-  
+
   if vis:
     thresh = 0.05
   else:
@@ -220,7 +220,7 @@ if __name__ == '__main__':
   _t = {'im_detect': time.time(), 'misc': time.time()}
   det_file = os.path.join(output_dir, 'detections.pkl')
 
-  fasterRCNN.eval()  
+  fasterRCNN.eval()
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
   for i in range(num_images):
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
       rpn_loss_cls, rpn_loss_box, \
       RCNN_loss_cls, RCNN_loss_bbox, \
       rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-      
+
       scores = cls_prob.data
       boxes = rois.data[:, :, 1:5]
 
@@ -260,8 +260,8 @@ if __name__ == '__main__':
           pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
       pred_boxes /= data[1][0][2]
-      
-      scores = scores.squeeze()    
+
+      scores = scores.squeeze()
       pred_boxes = pred_boxes.squeeze()
       det_toc = time.time()
       detect_time = det_toc - det_tic
