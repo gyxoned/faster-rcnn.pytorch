@@ -65,9 +65,9 @@ model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epo
 
 model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
-[Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 8 | 24    |1e-2| -   | 20  |  5.4 hr    |10659 MB  | 4.4
+[Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 1 P100 | 4    |1e-3| 5   | 20  |  3.7 hr    |12707 MB  | 4.4
 
-Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model!
+Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model on visual genome!
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
 * If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
@@ -189,7 +189,7 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 
 ## Demo
 
-If you want to run detection on your own images with a pre-trained model, download the pretrained model lined in above tables or train your own models at firt, then add images to folder $ROOT/images, and then run
+If you want to run detection on your own images with a pre-trained model, download the pretrained model listed in above tables or train your own models at first, then add images to folder $ROOT/images, and then run
 ```
 python demo.py --net vgg16 \
                --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
