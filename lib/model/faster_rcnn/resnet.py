@@ -219,15 +219,19 @@ def resnet152(pretrained=False):
 
 class resnet(_fasterRCNN):
   def __init__(self, classes, num_layers=101, pretrained=False, class_agnostic=False):
-    self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
+    self.model_path = 'data/pretrained_model/resnet'+str(num_layers)+'_caffe.pth'
     self.dout_base_model = 1024
+    self.num_layers = num_layers
     self.pretrained = pretrained
     self.class_agnostic = class_agnostic
 
     _fasterRCNN.__init__(self, classes, class_agnostic)
 
   def _init_modules(self):
-    resnet = resnet101()
+    if self.num_layers==50:
+      resnet = resnet50()
+    elif self.num_layers==101:
+      resnet = resnet101()
 
     if self.pretrained == True:
       print("Loading pretrained weights from %s" %(self.model_path))
