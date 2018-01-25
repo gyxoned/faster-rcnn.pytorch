@@ -41,10 +41,10 @@ def parse_args():
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
   parser.add_argument('--dataset', dest='dataset',
                       help='training dataset',
-                      default='pascal_voc', type=str)
+                      default='coco', type=str)
   parser.add_argument('--net', dest='net',
-                    help='vgg16, res101',
-                    default='vgg16', type=str)
+                    help='vgg16, res101, res50',
+                    default='res50', type=str)
   parser.add_argument('--start_epoch', dest='start_epoch',
                       help='starting epoch',
                       default=1, type=int)
@@ -86,10 +86,10 @@ def parse_args():
                       default="sgd", type=str)
   parser.add_argument('--lr', dest='lr',
                       help='starting learning rate',
-                      default=0.001, type=float)
+                      default=0.01, type=float)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
-                      default=5, type=int)
+                      default=4, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
                       default=0.1, type=float)
@@ -205,7 +205,7 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
-  output_dir = args.save_dir + "/" + args.net + "/" + args.dataset
+  output_dir = args.save_dir + "/" + args.net + '_gru' + "/" + args.dataset
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -259,7 +259,6 @@ if __name__ == '__main__':
   lr = args.lr
   #tr_momentum = cfg.TRAIN.MOMENTUM
   #tr_momentum = args.momentum
-
   params = []
   for key, value in dict(fasterRCNN.named_parameters()).items():
     if value.requires_grad:
@@ -320,10 +319,14 @@ if __name__ == '__main__':
       rois, cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \
       RCNN_loss_cls, RCNN_loss_bbox, \
+      GRU_loss_cls, GRU_loss_bbox, \
       rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
+      # loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
+      #      + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean() \
+      #      + GRU_loss_cls.mean() + GRU_loss_bbox.mean()
       loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
-           + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
+           + GRU_loss_cls.mean() + GRU_loss_bbox.mean()
       loss_temp += loss.data[0]
 
       # backward
@@ -343,6 +346,8 @@ if __name__ == '__main__':
           loss_rpn_box = rpn_loss_box.mean().data[0]
           loss_rcnn_cls = RCNN_loss_cls.mean().data[0]
           loss_rcnn_box = RCNN_loss_bbox.mean().data[0]
+          loss_gru_cls = GRU_loss_cls.mean().data[0]
+          loss_gru_box = GRU_loss_bbox.mean().data[0]
           fg_cnt = torch.sum(rois_label.data.ne(0))
           bg_cnt = rois_label.data.numel() - fg_cnt
         else:
@@ -350,21 +355,25 @@ if __name__ == '__main__':
           loss_rpn_box = rpn_loss_box.data[0]
           loss_rcnn_cls = RCNN_loss_cls.data[0]
           loss_rcnn_box = RCNN_loss_bbox.data[0]
+          loss_gru_cls = GRU_loss_cls.data[0]
+          loss_gru_box = GRU_loss_bbox.data[0]
           fg_cnt = torch.sum(rois_label.data.ne(0))
           bg_cnt = rois_label.data.numel() - fg_cnt
 
         print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
                                 % (args.session, epoch, step, loss_temp, lr))
         print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))
-        print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
-                      % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+        print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f, gru_cls: %.4f, gru_box: %.4f" \
+                      % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box, loss_gru_cls, loss_gru_box))
         if args.use_tfboard:
           info = {
             'loss': loss_temp,
             'loss_rpn_cls': loss_rpn_cls,
             'loss_rpn_box': loss_rpn_box,
             'loss_rcnn_cls': loss_rcnn_cls,
-            'loss_rcnn_box': loss_rcnn_box
+            'loss_rcnn_box': loss_rcnn_box,
+            'loss_gru_cls': loss_gru_cls,
+            'loss_gru_box': loss_gru_box,
           }
           for tag, value in info.items():
             logger.scalar_summary(tag, value, step)

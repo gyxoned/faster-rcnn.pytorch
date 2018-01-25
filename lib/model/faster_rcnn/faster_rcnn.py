@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torchvision.models as models
 from torch.autograd import Variable
+from torch.nn import init
 import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
@@ -12,6 +13,7 @@ from model.roi_pooling.modules.roi_pool import _RoIPooling
 from model.roi_crop.modules.roi_crop import _RoICrop
 from model.roi_align.modules.roi_align import RoIAlignAvg
 from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
+from model.faster_rcnn.gru import GRUMessage
 import time
 import pdb
 from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
@@ -35,6 +37,8 @@ class _fasterRCNN(nn.Module):
 
         self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
         self.RCNN_roi_crop = _RoICrop()
+
+        self.gru_net = GRUMessage(2048, self.n_classes, 2048, self.class_agnostic, 1)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         batch_size = im_data.size(0)
@@ -110,8 +114,19 @@ class _fasterRCNN(nn.Module):
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
+        pooled_feat = pooled_feat.view(batch_size, rois.size(1), -1)
 
-        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label
+        cls_prob, bbox_pred = self.gru_net(pooled_feat, cls_prob, bbox_pred)
+
+        if self.training:
+            GRU_loss_cls = F.cross_entropy(cls_prob, rois_label)
+            GRU_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+
+        cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
+        bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
+
+        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, \
+                 GRU_loss_cls, GRU_loss_bbox, rois_label
 
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
@@ -125,11 +140,23 @@ class _fasterRCNN(nn.Module):
                 m.weight.data.normal_(mean, stddev)
                 m.bias.data.zero_()
 
+        def net_normal_init(m):
+            classname = m.__class__.__name__
+            # print(classname)
+            if classname.find('Conv') != -1:
+                init.normal(m.weight.data, 0.0, 0.01)
+                init.constant(m.bias.data, 0.0)
+            elif classname.find('Linear') != -1:
+                init.normal(m.weight.data, 0.0, 0.01)
+                init.constant(m.bias.data, 0.0)
+
         normal_init(self.RCNN_rpn.RPN_Conv, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.gru_net.parameters(), 0, 0.01, cfg.TRAIN.TRUNCATED)
+        self.gru_net.apply(net_normal_init)
 
     def create_architecture(self):
         self._init_modules()
