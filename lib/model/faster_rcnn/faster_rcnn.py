@@ -14,6 +14,7 @@ from model.roi_crop.modules.roi_crop import _RoICrop
 from model.roi_align.modules.roi_align import RoIAlignAvg
 from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
 from model.faster_rcnn.gru import GRUMessage
+from model.rpn.bbox_transform import bbox_transform_inv, bbox_transform_batch
 import time
 import pdb
 from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
@@ -38,7 +39,7 @@ class _fasterRCNN(nn.Module):
         self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
         self.RCNN_roi_crop = _RoICrop()
 
-        self.gru_net = GRUMessage(2048, self.n_classes, 2048, self.class_agnostic, 1)
+        self.gru_net = GRUMessage(2048, 1024, 1)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         batch_size = im_data.size(0)
@@ -89,8 +90,11 @@ class _fasterRCNN(nn.Module):
         # feed pooled features to top model
         pooled_feat = self._head_to_tail(pooled_feat)
 
+        pooled_feat = self.gru_net(pooled_feat.view(batch_size, rois.size(1), -1), rois[:,:,1:5])
+
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
+
         if self.training and not self.class_agnostic:
             # select the corresponding columns according to roi labels
             bbox_pred_view = bbox_pred.view(bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
@@ -114,19 +118,8 @@ class _fasterRCNN(nn.Module):
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
-        pooled_feat = pooled_feat.view(batch_size, rois.size(1), -1)
 
-        cls_prob, bbox_pred = self.gru_net(pooled_feat, cls_prob, bbox_pred)
-
-        if self.training:
-            GRU_loss_cls = F.cross_entropy(cls_prob, rois_label)
-            GRU_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
-
-        cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
-        bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
-
-        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, \
-                 GRU_loss_cls, GRU_loss_bbox, rois_label
+        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label
 
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
